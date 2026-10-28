@@ -1,0 +1,8 @@
+{
+  "name": "ProjectSpark — Your First AI Project Starts Here",
+  "description": "Student-focused growth platform for the free online workshop 'Build Your First AI Project in 60 Minutes', featuring an AI Project Passport, Build Squad referral engine, and Growth Control Tower.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
