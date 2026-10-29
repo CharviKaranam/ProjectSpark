@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
-import { Sparkles, Menu, X, BookOpen } from 'lucide-react';
+import { Sparkles, Menu, X, ArrowRight } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: 'hub' | 'passport' | 'squad' | 'tower';
   setActiveTab: (tab: 'hub' | 'passport' | 'squad' | 'tower') => void;
-  onOpenGuide?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
-  onOpenGuide,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -82,14 +80,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </nav>
 
-          {/* Far Right: Platform Guide Action */}
+          {/* Far Right: Vivid Blue Primary Action "Explore Project Passport" */}
           <div className="hidden sm:flex items-center shrink-0">
             <button
-              onClick={onOpenGuide}
-              className="px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/90 rounded-xl transition-all shadow-2xs cursor-pointer flex items-center gap-1.5 active:scale-95"
+              onClick={() => handleNavClick('passport')}
+              className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl transition-all shadow-md shadow-blue-500/25 cursor-pointer flex items-center gap-1.5 active:scale-95"
             >
-              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-              <span>Platform Guide</span>
+              <span>Explore Project Passport</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
 
@@ -144,14 +142,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="pt-2">
             <button
-              onClick={() => {
-                if (onOpenGuide) onOpenGuide();
-                setMobileMenuOpen(false);
-              }}
-              className="w-full py-2.5 px-4 text-center text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+              onClick={() => handleNavClick('passport')}
+              className="w-full py-2.5 px-4 text-center text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-sm"
             >
-              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-              <span>Open Platform Guide</span>
+              Explore Project Passport
             </button>
           </div>
         </div>

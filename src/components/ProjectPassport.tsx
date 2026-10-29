@@ -4,75 +4,67 @@ import {
   Copy, 
   Check, 
   Share2, 
-  Bookmark, 
-  ChevronDown, 
-  User, 
-  X,
-  Scan,
+  RefreshCw, 
+  AlertCircle,
+  Award,
   CheckCircle2,
-  AlertCircle
+  FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { PassportData } from '../types';
 import { INITIAL_PASSPORT } from '../data/mockData';
-
-// Generated split-face image asset
-import splitFaceImg from '../assets/images/deepfake_split_face_1793179133550.jpg';
 
 interface ProjectPassportProps {
   onRegisterWithPassport?: (passport: PassportData) => void;
   registeredStudentName?: string;
 }
 
-const POPULAR_INTERESTS = [
-  'Machine Learning',
-  'Natural Language Processing',
-  'Computer Vision',
-  'Web Development',
-  'Autonomous Agents',
-  'Cloud Architecture'
+const INTERESTS = [
+  'Computer Science & Software Systems',
+  'Electronics & Embedded IoT',
+  'Mechanical & Robotics Automation',
+  'Civil & Infrastructure Systems',
+  'Electrical & Renewable Energy',
+  'Biotechnology & Healthcare Tech',
 ];
 
-const EXPERIENCE_OPTIONS = ['Beginner', 'Intermediate', 'Advanced'];
+const EXPERIENCE_LEVELS = [
+  { id: 'Beginner', label: 'Beginner', desc: 'Basic programming syntax' },
+  { id: 'Intermediate', label: 'Intermediate', desc: 'Built simple apps or APIs' },
+  { id: 'Advanced', label: 'Advanced', desc: 'Full-stack & Git proficient' },
+];
 
-const DOMAIN_OPTIONS = [
-  'Web Development',
-  'AI / Machine Learning',
-  'Mobile Development',
-  'Cloud Computing & DevOps',
-  'Cybersecurity & Forensics'
+const DOMAINS = [
+  'LLM Agents & Tool Use',
+  'RAG & Document Intelligence',
+  'Edge AI & Embedded Sensors',
+  'Computer Vision & Video AI',
+  'Voice & Speech Interactive AI',
+  'Predictive Data Analytics & ML',
 ];
 
 export const ProjectPassport: React.FC<ProjectPassportProps> = ({
   onRegisterWithPassport,
-  registeredStudentName = 'Candidate',
+  registeredStudentName = 'Aarav Sharma',
 }) => {
-  // Form states matching reference
-  const [selectedInterests, setSelectedInterests] = useState<string[]>(['Machine Learning']);
-  const [showInterestsDropdown, setShowInterestsDropdown] = useState(false);
+  const [studentName, setStudentName] = useState(registeredStudentName);
+  const [interest, setInterest] = useState(INTERESTS[0]);
   const [experienceLevel, setExperienceLevel] = useState('Intermediate');
-  const [preferredDomain, setPreferredDomain] = useState('Web Development');
+  const [domain, setDomain] = useState(DOMAINS[0]);
 
-  // Generation states
   const [isGenerating, setIsGenerating] = useState(false);
-  const [passport, setPassport] = useState<PassportData>(INITIAL_PASSPORT);
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [passport, setPassport] = useState<PassportData | null>(INITIAL_PASSPORT);
   const [copied, setCopied] = useState(false);
-  const [shareToast, setShareToast] = useState<string | null>(null);
-
-  const removeInterest = (item: string) => {
-    setSelectedInterests(prev => prev.filter(i => i !== item));
-  };
-
-  const addInterest = (item: string) => {
-    if (!selectedInterests.includes(item)) {
-      setSelectedInterests(prev => [...prev, item]);
-    }
-    setShowInterestsDropdown(false);
-  };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!studentName.trim()) {
+      setGenerationError('Please enter your candidate name.');
+      return;
+    }
+
+    setGenerationError(null);
     setIsGenerating(true);
 
     try {
@@ -80,346 +72,270 @@ export const ProjectPassport: React.FC<ProjectPassportProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          studentName: registeredStudentName,
-          branch: selectedInterests[0] || 'Machine Learning',
+          studentName: studentName.trim(),
+          branch: interest,
           experienceLevel,
-          domain: preferredDomain,
-          placementTarget: 'Top Tech Firm',
+          domain,
+          placementTarget: 'Tier-1 Product Company',
+          customIdea: '',
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setPassport({
-          ...data.passport,
-          studentName: registeredStudentName,
-          branch: selectedInterests[0] || 'Machine Learning',
-          experienceLevel,
-          domain: preferredDomain,
-        });
-      } else {
-        // Fallback with user selections
-        setPassport(prev => ({
-          ...prev,
-          branch: selectedInterests[0] || 'Machine Learning',
-          experienceLevel,
-          domain: preferredDomain,
-        }));
+      if (!response.ok) {
+        throw new Error(`Generation failed with status ${response.status}`);
       }
 
-      confetti({
-        particleCount: 45,
-        spread: 60,
-        origin: { y: 0.65 },
-        colors: ['#2563eb', '#38bdf8', '#8b5cf6', '#10b981'],
-      });
-    } catch {
-      // Graceful fallback
-      setPassport(prev => ({
-        ...prev,
-        branch: selectedInterests[0] || 'Machine Learning',
+      const data = await response.json();
+      if (data.success && data.passport) {
+        setPassport(data.passport);
+        try {
+          confetti({ particleCount: 30, spread: 45, origin: { y: 0.6 } });
+        } catch {}
+      } else {
+        throw new Error('Invalid response structure');
+      }
+    } catch (err: any) {
+      console.warn('Generation error, using verified blueprint fallback:', err);
+      setGenerationError('Live Gemini connection issue. A verified blueprint has been prepared below.');
+      setPassport({
+        ...INITIAL_PASSPORT,
+        studentName: studentName.trim(),
+        branch: interest,
         experienceLevel,
-        domain: preferredDomain,
-      }));
+        domain,
+        passportId: `PSP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        generatedAt: new Date().toISOString(),
+      });
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleCopy = () => {
-    const textToCopy = `${passport.title}\n\nProblem Statement:\n${passport.problemStatement}\n\nKey Features:\n${passport.suggestedFeatures.map(f => `• ${f}`).join('\n')}\n\nTechnologies: ${selectedInterests.join(', ')} | ${preferredDomain} | ${experienceLevel}`;
-    navigator.clipboard.writeText(textToCopy);
+    if (!passport) return;
+    const text = `${passport.title}\n\nProblem Statement: ${passport.problemStatement}\n\nDescription: ${passport.shortDescription}\n\nFeatures:\n${passport.suggestedFeatures.map((f, i) => `${i + 1}. ${f}`).join('\n')}\n\nSTAR Resume Bullet:\n${passport.resumeBullets.join('\n')}`;
+    navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShare = () => {
-    const shareText = `Check out my personalized AI project idea for the ProjectSpark workshop: "${passport.title}"! Join me at https://projectspark.in/?ref=KC123`;
-    if (navigator.share) {
-      navigator.share({
-        title: passport.title,
-        text: shareText,
-        url: 'https://projectspark.in',
-      }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(shareText);
-      setShareToast('Share link copied to clipboard!');
-      setTimeout(() => setShareToast(null), 3000);
-    }
+    if (!passport) return;
+    const text = `Check out my personalized AI Project Idea for the "Build Your First AI Project in 60 Minutes" workshop: "${passport.title}"!`;
+    const url = window.location.origin;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
   };
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
-      {/* Page Heading */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">AI Project Passport</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Get a personalized AI project idea based on your interests and experience.
+    <div className="max-w-3xl mx-auto space-y-8 py-6 sm:py-8">
+      {/* 1. Page Title and One-Line Description */}
+      <div className="text-center space-y-1.5">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+          AI Project Passport
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto">
+          Personalized AI project idea generator aligned with your academic discipline and campus placement goals.
         </p>
       </div>
 
-      {/* Two Column Layout matching reference Panel 3 */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Input Form (4 cols on lg) */}
-        <div className="lg:col-span-5 bg-white rounded-xl p-6 border border-gray-200/80 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-900 mb-5">Tell us about yourself</h2>
+      {/* 2. Compact, Well-Aligned Form */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs">
+        <form onSubmit={handleGenerate} className="space-y-4 text-xs">
+          {/* Candidate Name */}
+          <div className="space-y-1">
+            <label className="font-semibold text-slate-700 block">Candidate Name</label>
+            <input
+              type="text"
+              required
+              value={studentName}
+              onChange={(e) => setStudentName(e.target.value)}
+              placeholder="e.g. Aarav Sharma"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+            />
+          </div>
 
-          <form onSubmit={handleGenerate} className="space-y-5">
-            {/* Field 1: Your Interests */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Your Interests
-              </label>
-              <div className="relative">
-                <div 
-                  onClick={() => setShowInterestsDropdown(!showInterestsDropdown)}
-                  className="min-h-[42px] w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg flex items-center justify-between cursor-pointer hover:border-gray-300 transition-colors"
-                >
-                  <div className="flex flex-wrap gap-1.5 items-center">
-                    {selectedInterests.map((interest, i) => (
-                      <span 
-                        key={i}
-                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeInterest(interest);
-                        }}
-                      >
-                        {interest}
-                        <X className="w-3 h-3 hover:text-blue-900 cursor-pointer" />
-                      </span>
-                    ))}
-                    {selectedInterests.length === 0 && (
-                      <span className="text-xs text-gray-400">Select interests...</span>
-                    )}
-                  </div>
-                  <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                </div>
+          {/* Interest Selection */}
+          <div className="space-y-1">
+            <label className="font-semibold text-slate-700 block">Discipline / Branch Interest</label>
+            <select
+              value={interest}
+              onChange={(e) => setInterest(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer"
+            >
+              {INTERESTS.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+          </div>
 
-                {/* Dropdown Options */}
-                {showInterestsDropdown && (
-                  <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 max-h-48 overflow-y-auto">
-                    {POPULAR_INTERESTS.map((item, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => addInterest(item)}
-                        className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between hover:bg-gray-50 ${
-                          selectedInterests.includes(item) ? 'text-blue-600 font-medium bg-blue-50/50' : 'text-gray-700'
-                        }`}
-                      >
-                        <span>{item}</span>
-                        {selectedInterests.includes(item) && <Check className="w-3.5 h-3.5" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+          {/* Experience Level */}
+          <div className="space-y-1.5">
+            <label className="font-semibold text-slate-700 block">Experience Level</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {EXPERIENCE_LEVELS.map((lvl) => {
+                const isSelected = experienceLevel === lvl.id;
+                return (
+                  <button
+                    type="button"
+                    key={lvl.id}
+                    onClick={() => setExperienceLevel(lvl.id)}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-blue-600 bg-blue-50/70 text-blue-900 font-semibold shadow-2xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="text-xs font-bold">{lvl.label}</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">{lvl.desc}</div>
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
-            {/* Field 2: Experience Level */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Experience Level
-              </label>
-              <div className="relative">
-                <select
-                  value={experienceLevel}
-                  onChange={(e) => setExperienceLevel(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-800 font-medium outline-none hover:border-gray-300 focus:border-blue-500 transition-colors pr-9 cursor-pointer"
-                >
-                  {EXPERIENCE_OPTIONS.map((lvl) => (
-                    <option key={lvl} value={lvl}>{lvl}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
+          {/* Preferred Domain */}
+          <div className="space-y-1">
+            <label className="font-semibold text-slate-700 block">Preferred AI Domain</label>
+            <select
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 cursor-pointer"
+            >
+              {DOMAINS.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
 
-            {/* Field 3: Preferred Domain */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Preferred Domain
-              </label>
-              <div className="relative">
-                <select
-                  value={preferredDomain}
-                  onChange={(e) => setPreferredDomain(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-800 font-medium outline-none hover:border-gray-300 focus:border-blue-500 transition-colors pr-9 cursor-pointer"
-                >
-                  {DOMAIN_OPTIONS.map((dm) => (
-                    <option key={dm} value={dm}>{dm}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
-
-            {/* Submit Button */}
+          {/* 3. One Prominent "Generate My Project" Button */}
+          <div className="pt-2">
             <button
               type="submit"
               disabled={isGenerating}
-              className="w-full mt-2 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
+              className="w-full py-3 px-4 rounded-xl font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs text-sm"
             >
               {isGenerating ? (
                 <>
-                  <Sparkles className="w-4 h-4 animate-spin text-white" />
-                  <span>Synthesizing Architecture...</span>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Generating Project Blueprint...</span>
                 </>
               ) : (
                 <>
+                  <Sparkles className="w-4 h-4" />
                   <span>Generate My Project</span>
-                  <span className="text-yellow-300">✨</span>
                 </>
               )}
             </button>
-          </form>
-        </div>
+          </div>
 
-        {/* Right Column: Generated Project Card (7 cols on lg) */}
-        <div className="lg:col-span-7 bg-white rounded-xl p-6 border border-gray-200/80 shadow-sm flex flex-col justify-between">
-          <div>
-            {/* Card Top: Avatar / Title & Bookmark */}
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                  <User className="w-4 h-4" />
-                </div>
-                <span className="text-xs font-semibold text-gray-700">Your Personalized AI Project</span>
+          {/* Loading & Error States */}
+          {isGenerating && (
+            <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-800 text-center animate-pulse font-medium">
+              Generating placement-ready blueprint with Gemini 3.8 Flash...
+            </div>
+          )}
+
+          {generationError && (
+            <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>{generationError}</span>
+            </div>
+          )}
+        </form>
+      </div>
+
+      {/* 4. Project Result in a Separate, Visually Appealing Card */}
+      {passport && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-7 shadow-xs space-y-5">
+          {/* Header row */}
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-xs">
+            <div className="flex items-center gap-2 font-medium text-slate-600">
+              <span className="font-bold text-slate-900">{passport.studentName}</span>
+              <span>&bull;</span>
+              <span>{passport.branch}</span>
+              <span>&bull;</span>
+              <span className="text-blue-600 font-semibold">{passport.experienceLevel}</span>
+            </div>
+            <span className="font-mono text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+              {passport.passportId}
+            </span>
+          </div>
+
+          {/* Title & Overview */}
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">
+              Personalized Project Idea
+            </span>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 leading-snug">
+              {passport.title}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed pt-1">
+              {passport.shortDescription}
+            </p>
+          </div>
+
+          {/* Problem Statement */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1 text-xs">
+            <span className="font-semibold text-slate-700 block">Problem Statement:</span>
+            <p className="text-slate-600 leading-relaxed">{passport.problemStatement}</p>
+          </div>
+
+          {/* Suggested Features */}
+          {passport.suggestedFeatures && passport.suggestedFeatures.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-slate-700 block">Core Features:</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {passport.suggestedFeatures.map((feat, idx) => (
+                  <div key={idx} className="p-2.5 rounded-lg bg-blue-50/50 border border-blue-100 text-slate-700 flex items-start gap-2">
+                    <span className="font-mono font-bold text-blue-600 shrink-0">{idx + 1}.</span>
+                    <span className="leading-relaxed">{feat}</span>
+                  </div>
+                ))}
               </div>
-              <button 
-                onClick={() => setIsBookmarked(!isBookmarked)}
-                className={`p-1.5 rounded-md hover:bg-gray-100 transition-colors ${
-                  isBookmarked ? 'text-blue-600 fill-blue-600' : 'text-gray-400'
-                }`}
-                title={isBookmarked ? 'Bookmarked' : 'Bookmark this project'}
+            </div>
+          )}
+
+          {/* STAR Placement Bullet */}
+          {passport.resumeBullets && passport.resumeBullets.length > 0 && (
+            <div className="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100 space-y-1.5 text-xs">
+              <span className="font-bold text-indigo-900 block">STAR Placement Resume Bullet:</span>
+              <p className="text-slate-700 leading-relaxed font-medium">
+                &bull; {passport.resumeBullets[0]}
+              </p>
+            </div>
+          )}
+
+          {/* 5. Copy and Share Actions at Bottom of Result Card */}
+          <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopy}
+                className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
               >
-                <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-blue-600' : ''}`} />
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copied ? 'Copied' : 'Copy Project Idea'}</span>
+              </button>
+
+              <button
+                onClick={handleShare}
+                className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Share Idea</span>
               </button>
             </div>
 
-            {/* Project Title */}
-            <div className="mt-4">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
-                {passport.title || 'TrueLens – Deepfake Image Detector'}
-              </h3>
-
-              {/* Tags Row */}
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-sky-50 text-sky-700 border border-sky-100">
-                  {selectedInterests[0] || 'Machine Learning'}
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-sky-50 text-sky-700 border border-sky-100">
-                  {preferredDomain}
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-100">
-                  {experienceLevel}
-                </span>
-              </div>
-            </div>
-
-            {/* Problem Statement */}
-            <div className="mt-4">
-              <h4 className="text-xs font-semibold text-gray-900 mb-1">Problem Statement</h4>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                {passport.problemStatement || 'Detect whether an image is real or AI-generated to help reduce misinformation.'}
-              </p>
-            </div>
-
-            {/* Key Features & Visual Preview Section */}
-            <div className="mt-5 grid grid-cols-1 sm:grid-cols-12 gap-5 items-center">
-              {/* Features list (7 cols) */}
-              <div className="sm:col-span-7">
-                <h4 className="text-xs font-semibold text-gray-900 mb-2.5">Key Features</h4>
-                <ul className="space-y-2 text-xs text-gray-600">
-                  {(passport.suggestedFeatures || [
-                    'Upload an image for analysis',
-                    'AI model to detect real vs deepfake',
-                    'Confidence score with visual explanation',
-                    'Clean and user-friendly web interface'
-                  ]).map((feat, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-blue-600 font-bold text-base leading-none">•</span>
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Visual Preview Graphic: Split Face (5 cols) */}
-              <div className="sm:col-span-5 flex justify-center sm:justify-end">
-                <div className="relative w-44 h-44 rounded-xl overflow-hidden border border-gray-200/90 shadow-xs bg-slate-900 group">
-                  {/* Photo background */}
-                  <img 
-                    src={splitFaceImg} 
-                    alt="Real vs AI Deepfake Detection Scanner"
-                    className="w-full h-full object-cover" 
-                  />
-
-                  {/* Center Divider Line */}
-                  <div className="absolute inset-y-0 left-1/2 w-0.5 bg-sky-400/80 shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
-
-                  {/* Corner Scanner Reticles */}
-                  <div className="absolute inset-2 pointer-events-none border border-sky-400/40 rounded-sm">
-                    <div className="absolute -top-1 -left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-sky-400" />
-                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 border-t-2 border-r-2 border-pink-400" />
-                    <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 border-b-2 border-l-2 border-sky-400" />
-                    <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-pink-400" />
-                  </div>
-
-                  {/* REAL Badge on left */}
-                  <div className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-full bg-emerald-500/90 text-white font-mono text-[9px] font-bold tracking-wider shadow-sm flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                    REAL
-                  </div>
-
-                  {/* AI Badge on right */}
-                  <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-pink-500/90 text-white font-mono text-[9px] font-bold tracking-wider shadow-sm flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                    AI
-                  </div>
-                </div>
-              </div>
-            </div>
+            {onRegisterWithPassport && (
+              <button
+                onClick={() => onRegisterWithPassport(passport)}
+                className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
+              >
+                Build in Workshop &rarr;
+              </button>
+            )}
           </div>
-
-          {/* Action Buttons Row matching reference */}
-          <div className="mt-8 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  <span className="text-emerald-700">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 text-gray-500" />
-                  <span>Copy Project Idea</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleShare}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer"
-            >
-              <Share2 className="w-4 h-4" />
-              <span>Share</span>
-            </button>
-          </div>
-
-          {shareToast && (
-            <div className="mt-2 text-right">
-              <span className="text-xs text-blue-600 font-medium">{shareToast}</span>
-            </div>
-          )}
         </div>
-      </div>
+      )}
     </div>
   );
 };

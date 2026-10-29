@@ -39,7 +39,6 @@ export interface DayProgress {
   dateLabel: string;
   target: number;
   actual?: number;
-  cum?: number;
   projected?: number;
   spentInr?: number;
   squadSignups?: number;

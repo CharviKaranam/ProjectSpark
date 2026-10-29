@@ -4,18 +4,15 @@ import {
   Copy, 
   Check, 
   Share2, 
-  Edit3, 
-  Send, 
-  CheckCircle2, 
-  Lightbulb, 
   MessageCircle, 
-  Instagram, 
-  Globe, 
-  Plus,
-  Sparkles
+  PlusCircle, 
+  Edit3, 
+  RotateCcw,
+  Info
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ReferralMember } from '../types';
+import { INITIAL_SQUAD_MEMBERS } from '../data/mockData';
 
 interface BuildSquadProps {
   referralCode?: string;
@@ -23,361 +20,251 @@ interface BuildSquadProps {
   onSquadMemberAdded?: (member: ReferralMember) => void;
 }
 
-interface ActivityRow {
-  student: string;
-  channel: string;
-  channelIcon: 'whatsapp' | 'instagram' | 'direct' | 'telegram';
-  status: 'Registered' | 'Clicked';
-  date: string;
-}
+const SAMPLE_NAMES = [
+  { name: 'Siddharth Nair', college: 'VIT Vellore', branch: 'ECE' },
+  { name: 'Karthik Rao', college: 'DTU Delhi', branch: 'Software Engineering' },
+  { name: 'Meera Kulkarni', college: 'PICT Pune', branch: 'IT' },
+  { name: 'Tanmay Gupta', college: 'BMS College of Engineering', branch: 'AI & Data Science' },
+  { name: 'Divya Nambiar', college: 'NIT Surathkal', branch: 'ECE' },
+];
 
 export const BuildSquad: React.FC<BuildSquadProps> = ({
-  referralCode = 'KC123',
-  studentName = 'Candidate',
+  referralCode = 'SPARK-CS-892',
+  studentName = 'Aarav Sharma',
   onSquadMemberAdded,
 }) => {
-  const referralLink = `https://projectspark.in/?ref=${referralCode}`;
+  const referralLink = `${window.location.origin}?ref=${referralCode}`;
 
-  const defaultInvitation = `Hey! I'm joining the 'Build Your First AI Project in 60 Minutes' workshop. It's free and perfect for anyone interested in AI. Join using my link! 🚀`;
+  const defaultMessage = `Hey! Check out this free hands-on workshop: "Build Your First AI Project in 60 Minutes" (Live code with Gemini 3.8 Flash). We build a live deployed app for our GitHub and placement portfolios.\n\nJoin our squad with my invite code: ${referralCode} (${referralLink})`;
 
-  const [message, setMessage] = useState(defaultInvitation);
-  const [isEditingMessage, setIsEditingMessage] = useState(false);
+  const [invitationMessage, setInvitationMessage] = useState(defaultMessage);
+  const [isEditing, setIsEditing] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [shareToast, setShareToast] = useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedMessage, setCopiedMessage] = useState(false);
+  const [records, setRecords] = useState<ReferralMember[]>(INITIAL_SQUAD_MEMBERS);
 
-  // Summary counts matching reference
-  const [invitationsSent, setInvitationsSent] = useState(53);
-  const [referralActivity, setReferralActivity] = useState(26);
-  const [completedRegistrations, setCompletedRegistrations] = useState(12);
+  // Summary Metrics
+  const totalInvitationsGenerated = 14;
+  const totalReferralActivity = records.length + 8;
+  const totalCompletedRegistrations = records.filter(r => r.status === 'Registered & Confirmed').length;
 
-  // Recent activity table matching reference
-  const [activityList, setActivityList] = useState<ActivityRow[]>([
-    {
-      student: 'Student A',
-      channel: 'WhatsApp',
-      channelIcon: 'whatsapp',
-      status: 'Registered',
-      date: 'Oct 31, 2026',
-    },
-    {
-      student: 'Student B',
-      channel: 'Instagram',
-      channelIcon: 'instagram',
-      status: 'Clicked',
-      date: 'Oct 30, 2026',
-    },
-    {
-      student: 'Student C',
-      channel: 'Direct Link',
-      channelIcon: 'direct',
-      status: 'Registered',
-      date: 'Oct 29, 2026',
-    },
-    {
-      student: 'Student D',
-      channel: 'Telegram',
-      channelIcon: 'telegram',
-      status: 'Clicked',
-      date: 'Oct 28, 2026',
-    },
-  ]);
-
-  const handleCopy = () => {
+  const handleCopyLink = () => {
     navigator.clipboard.writeText(referralLink);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const handleShare = () => {
-    const fullText = `${message}\n\n${referralLink}`;
-    if (navigator.share) {
-      navigator.share({
-        title: 'Build Your First AI Project in 60 Minutes',
-        text: fullText,
-        url: referralLink,
-      }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(fullText);
-      setShareToast('Invitation and link copied to clipboard!');
-      setTimeout(() => setShareToast(null), 3000);
-    }
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(referralCode);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  // Simulate new peer registration
-  const handleSimulateSignup = () => {
-    const newLetters = ['E', 'F', 'G', 'H', 'I'];
-    const nextLetter = newLetters[(activityList.length - 4) % newLetters.length] || 'E';
-    const newRow: ActivityRow = {
-      student: `Student ${nextLetter}`,
-      channel: 'WhatsApp',
-      channelIcon: 'whatsapp',
-      status: 'Registered',
-      date: 'Just now',
+  const handleCopyMessage = () => {
+    navigator.clipboard.writeText(invitationMessage);
+    setCopiedMessage(true);
+    setTimeout(() => setCopiedMessage(false), 2000);
+  };
+
+  const handleShareWhatsApp = () => {
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(invitationMessage)}`, '_blank');
+  };
+
+  const handleSimulateNewActivity = () => {
+    const randomPick = SAMPLE_NAMES[Math.floor(Math.random() * SAMPLE_NAMES.length)];
+    const channels: ('WhatsApp' | 'LinkedIn' | 'Discord')[] = ['WhatsApp', 'WhatsApp', 'LinkedIn'];
+    const chosenChannel = channels[Math.floor(Math.random() * channels.length)];
+
+    const newMember: ReferralMember = {
+      id: `sim-${Date.now()}`,
+      name: randomPick.name,
+      college: randomPick.college,
+      branch: randomPick.branch,
+      timestamp: 'Just now',
+      isSimulated: true,
+      channel: chosenChannel,
+      status: 'Registered & Confirmed',
     };
 
-    setActivityList([newRow, ...activityList]);
-    setReferralActivity(prev => prev + 1);
-    setCompletedRegistrations(prev => prev + 1);
-
-    confetti({
-      particleCount: 50,
-      spread: 70,
-      origin: { y: 0.7 },
-      colors: ['#10b981', '#2563eb', '#8b5cf6'],
-    });
-
+    const updated = [newMember, ...records];
+    setRecords(updated);
     if (onSquadMemberAdded) {
-      onSquadMemberAdded({
-        id: `s-${Date.now()}`,
-        name: `Student ${nextLetter}`,
-        college: 'Engineering College',
-        branch: 'AI & Data Science',
-        timestamp: 'Just now',
-        isSimulated: true,
-        channel: 'WhatsApp',
-        status: 'Registered & Confirmed',
-      });
+      onSquadMemberAdded(newMember);
     }
+
+    try {
+      confetti({ particleCount: 30, spread: 45, origin: { y: 0.6 } });
+    } catch {}
   };
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
-      {/* Page Heading */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Build Squad Challenge</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Invite your friends, grow the student community, and help us reach 500 registrations.
+    <div className="max-w-3xl mx-auto space-y-8 py-6 sm:py-8">
+      {/* 1. Page Title and One-Line Description */}
+      <div className="text-center space-y-1.5">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+          Build Squad Challenge
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto">
+          Invite final-year capstone peers to unlock VIP breakout rooms and track peer registrations.
         </p>
       </div>
 
-      {/* Two Column Layout matching reference Panel 4 */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Your Invitation (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-xl p-6 border border-gray-200/80 shadow-sm flex flex-col justify-between">
-          <div>
-            {/* Header: Pink Avatar Icon & Title + Edit Pencil */}
-            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center text-pink-500">
-                  <Users className="w-4 h-4" />
-                </div>
-                <h2 className="text-base font-semibold text-gray-900">Your Invitation</h2>
-              </div>
-              <button 
-                type="button"
-                onClick={() => setIsEditingMessage(!isEditingMessage)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-                title="Edit invitation message"
-              >
-                <Edit3 className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Editable or Static Message Box */}
-            <div className="mt-4">
-              {isEditingMessage ? (
-                <div>
-                  <textarea
-                    rows={4}
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    className="w-full p-3.5 bg-gray-50/80 border border-gray-200 rounded-xl text-xs sm:text-sm text-gray-800 leading-relaxed outline-none focus:border-blue-500 focus:bg-white transition-all resize-none"
-                  />
-                  <div className="flex justify-end mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingMessage(false)}
-                      className="px-3 py-1 bg-blue-600 text-white rounded-md text-xs font-semibold"
-                    >
-                      Done Editing
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 bg-gray-50/80 border border-gray-100 rounded-xl">
-                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-                    {message}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Your Referral Link Section */}
-            <div className="mt-6">
-              <label className="block text-xs font-semibold text-gray-900 mb-2">
-                Your Referral Link
-              </label>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                {/* Link input */}
-                <div className="flex-1 relative flex items-center">
-                  <input
-                    type="text"
-                    readOnly
-                    value={referralLink}
-                    className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-600 font-mono focus:outline-none pr-8 select-all"
-                  />
-                  <button 
-                    type="button"
-                    onClick={handleCopy}
-                    className="absolute right-2.5 text-gray-400 hover:text-gray-600"
-                    title="Copy"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* Copy Button */}
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-                >
-                  {copiedLink ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-white" />
-                      <span>Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
-
-                {/* Share Button */}
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-blue-600 hover:bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Share</span>
-                </button>
-              </div>
-
-              {shareToast && (
-                <p className="text-xs text-emerald-600 font-medium mt-2">{shareToast}</p>
-              )}
-            </div>
+      {/* 2. Prominent Invitation Card with Editable Message and Referral Code/Link */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="space-y-0.5">
+            <h2 className="text-sm font-bold text-slate-900">Custom Invitation Message</h2>
+            <p className="text-xs text-slate-500">Edit message, copy, or share with classmates.</p>
           </div>
-
-          {/* Quick Simulation Trigger */}
-          <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-            <span>Simulate friend referral:</span>
+          <div className="flex items-center gap-2">
             <button
-              type="button"
-              onClick={handleSimulateSignup}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+              onClick={() => setIsEditing(!isEditing)}
+              className="px-2.5 py-1 text-xs font-semibold border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer flex items-center gap-1"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Simulate Peer Sign Up</span>
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>{isEditing ? 'Done' : 'Edit'}</span>
+            </button>
+            <button
+              onClick={() => setInvitationMessage(defaultMessage)}
+              className="p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              title="Reset message"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Right Column: Referral Summary & Recent Activity (7 cols) */}
-        <div className="lg:col-span-7 bg-white rounded-xl p-6 border border-gray-200/80 shadow-sm flex flex-col justify-between">
-          <div>
-            {/* Header: Lightbulb Icon & Title */}
-            <div className="flex items-center gap-2 pb-4 border-b border-gray-100">
-              <div className="w-7 h-7 rounded-full bg-amber-50 flex items-center justify-center text-amber-500">
-                <Lightbulb className="w-4 h-4" />
-              </div>
-              <h2 className="text-base font-semibold text-gray-900">Referral Summary</h2>
-            </div>
-
-            {/* 3 Metric Cards Row matching reference */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-4">
-              {/* Metric 1: Invitations Sent */}
-              <div className="p-4 rounded-xl bg-blue-50/40 border border-blue-100/70 flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
-                  <Send className="w-5 h-5 -rotate-12 translate-x-0.5" />
-                </div>
-                <div>
-                  <span className="text-2xl font-bold text-gray-900 block leading-tight">{invitationsSent}</span>
-                  <span className="text-[11px] font-medium text-gray-500">Invitations Sent</span>
-                </div>
-              </div>
-
-              {/* Metric 2: Referral Activity */}
-              <div className="p-4 rounded-xl bg-emerald-50/40 border border-emerald-100/70 flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-2xl font-bold text-gray-900 block leading-tight">{referralActivity}</span>
-                  <span className="text-[11px] font-medium text-gray-500">Referral Activity</span>
-                </div>
-              </div>
-
-              {/* Metric 3: Completed Registrations */}
-              <div className="p-4 rounded-xl bg-purple-50/40 border border-purple-100/70 flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 flex-shrink-0">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-2xl font-bold text-gray-900 block leading-tight">{completedRegistrations}</span>
-                  <span className="text-[11px] font-medium text-gray-500">Completed Registrations</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Activity Table matching reference */}
-            <div className="mt-6">
-              <h3 className="text-xs font-semibold text-gray-900 mb-2.5">Recent Activity</h3>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-gray-100 text-gray-500 font-medium">
-                      <th className="py-2.5 font-medium">Referred Student</th>
-                      <th className="py-2.5 font-medium">Channel</th>
-                      <th className="py-2.5 font-medium">Status</th>
-                      <th className="py-2.5 font-medium text-right">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 text-gray-800">
-                    {activityList.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/60 transition-colors">
-                        <td className="py-3 font-semibold text-gray-900">{row.student}</td>
-                        <td className="py-3">
-                          <div className="flex items-center gap-1.5 text-gray-600">
-                            {row.channelIcon === 'whatsapp' && (
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                            )}
-                            {row.channelIcon === 'instagram' && (
-                              <span className="w-2 h-2 rounded-full bg-pink-500 inline-block" />
-                            )}
-                            {row.channelIcon === 'direct' && (
-                              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                            )}
-                            {row.channelIcon === 'telegram' && (
-                              <span className="w-2 h-2 rounded-full bg-sky-500 inline-block" />
-                            )}
-                            <span>{row.channel}</span>
-                          </div>
-                        </td>
-                        <td className="py-3">
-                          {row.status === 'Registered' ? (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              Registered
-                            </span>
-                          ) : (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                              Clicked
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 text-right text-gray-500">{row.date}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+        {isEditing ? (
+          <textarea
+            rows={4}
+            value={invitationMessage}
+            onChange={(e) => setInvitationMessage(e.target.value)}
+            className="w-full p-3 text-xs rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-sans"
+          />
+        ) : (
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-700 leading-relaxed font-sans whitespace-pre-line">
+            {invitationMessage}
           </div>
+        )}
+
+        {/* Squad Code & Referral Link Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs">
+          <div className="p-3 rounded-xl bg-blue-50/60 border border-blue-200/80 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] text-blue-700 font-semibold block uppercase">Squad Code</span>
+              <span className="font-mono font-bold text-slate-900 text-sm">{referralCode}</span>
+            </div>
+            <button
+              onClick={handleCopyCode}
+              className="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+            >
+              {copiedCode ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+              <span>{copiedCode ? 'Copied' : 'Copy'}</span>
+            </button>
+          </div>
+
+          <div className="p-3 rounded-xl bg-violet-50/60 border border-violet-200/80 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <span className="text-[10px] text-violet-700 font-semibold block uppercase">Referral Link</span>
+              <span className="font-mono text-xs text-slate-700 truncate block">{referralLink}</span>
+            </div>
+            <button
+              onClick={handleCopyLink}
+              className="px-2.5 py-1 text-xs font-semibold text-violet-700 bg-white border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors cursor-pointer shrink-0 flex items-center gap-1 shadow-2xs"
+            >
+              {copiedLink ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+              <span>{copiedLink ? 'Copied' : 'Copy'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 3. Copy and Share Buttons Placed Beside Invitation Actions */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs">
+          <button
+            onClick={handleCopyMessage}
+            className="px-3.5 py-2 font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+          >
+            {copiedMessage ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copiedMessage ? 'Copied Message' : 'Copy Message'}</span>
+          </button>
+
+          <button
+            onClick={handleShareWhatsApp}
+            className="px-3.5 py-2 font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>Share to WhatsApp</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 4. Compact Row of Three Summary Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+          <div className="text-xs text-slate-500 font-medium">Invitations Generated</div>
+          <div className="text-2xl font-bold text-slate-900 tabular-nums">{totalInvitationsGenerated}</div>
+          <p className="text-[11px] text-slate-400">Total invite links crafted</p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+          <div className="text-xs text-slate-500 font-medium">Referral Activity</div>
+          <div className="text-2xl font-bold text-slate-900 tabular-nums">{totalReferralActivity}</div>
+          <p className="text-[11px] text-slate-400">Clicks and engagements</p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+          <div className="text-xs text-slate-500 font-medium">Completed Registrations</div>
+          <div className="text-2xl font-bold text-emerald-600 tabular-nums">{totalCompletedRegistrations}</div>
+          <p className="text-[11px] text-slate-400">Confirmed student seats</p>
+        </div>
+      </div>
+
+      {/* 5. Optional Compact Activity Table Below Metrics */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div className="space-y-0.5">
+            <h3 className="text-sm font-bold text-slate-900">Referral Activity Log</h3>
+            <p className="text-xs text-slate-500">Source tracking and activity status.</p>
+          </div>
+
+          <button
+            onClick={handleSimulateNewActivity}
+            className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+          >
+            <PlusCircle className="w-3.5 h-3.5 text-blue-600" />
+            <span>Simulate Peer (+1)</span>
+          </button>
+        </div>
+
+        <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 text-[11px] text-amber-800 flex items-center gap-2">
+          <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+          <span>Notice: Activity records below are simulated for demonstration. No external messages sent.</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs font-sans">
+            <thead>
+              <tr className="border-b border-slate-100 text-slate-400 font-medium pb-1.5">
+                <th className="py-2 px-2.5">Student</th>
+                <th className="py-2 px-2.5">Institution</th>
+                <th className="py-2 px-2.5">Channel</th>
+                <th className="py-2 px-2.5">Status</th>
+                <th className="py-2 px-2.5 text-right">Time</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {records.map((member) => (
+                <tr key={member.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="py-2.5 px-2.5 font-semibold text-slate-900">{member.name}</td>
+                  <td className="py-2.5 px-2.5 text-slate-500">{member.college}</td>
+                  <td className="py-2.5 px-2.5 text-slate-600">{member.channel}</td>
+                  <td className="py-2.5 px-2.5 text-emerald-600 font-medium">{member.status}</td>
+                  <td className="py-2.5 px-2.5 text-right text-slate-400">{member.timestamp}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

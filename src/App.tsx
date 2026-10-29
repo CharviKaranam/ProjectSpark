@@ -4,7 +4,6 @@ import { WorkshopHub } from './components/WorkshopHub';
 import { ProjectPassport } from './components/ProjectPassport';
 import { BuildSquad } from './components/BuildSquad';
 import { GrowthTower } from './components/GrowthTower';
-import { PlatformGuideModal } from './components/PlatformGuideModal';
 import { PassportData, ReferralMember } from './types';
 
 export default function App() {
@@ -12,7 +11,6 @@ export default function App() {
   const [currentRegistrations, setCurrentRegistrations] = useState(384);
   const [referralCode, setReferralCode] = useState('SPARK-CS-892');
   const [studentName, setStudentName] = useState('Aarav Sharma');
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // Detect referral parameter in URL (?ref=...)
   useEffect(() => {
@@ -38,11 +36,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50/70 text-slate-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
-      {/* 1. Compact Top Navigation Bar with Platform Guide trigger */}
+      {/* 1. Compact Top Navigation Bar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenGuide={() => setIsGuideOpen(true)}
       />
 
       {/* Main Content Viewport */}
@@ -89,20 +86,9 @@ export default function App() {
             <button onClick={() => setActiveTab('passport')} className="hover:text-blue-600 cursor-pointer">AI Project Passport</button>
             <button onClick={() => setActiveTab('squad')} className="hover:text-blue-600 cursor-pointer">Build Squad</button>
             <button onClick={() => setActiveTab('tower')} className="hover:text-blue-600 cursor-pointer">Growth Tower</button>
-            <button onClick={() => setIsGuideOpen(true)} className="text-blue-600 font-semibold hover:underline cursor-pointer">Guide</button>
           </div>
         </div>
       </footer>
-
-      {/* New User Platform Guide Modal */}
-      <PlatformGuideModal
-        isOpen={isGuideOpen}
-        onClose={() => setIsGuideOpen(false)}
-        onNavigate={(tab) => {
-          setActiveTab(tab);
-          setIsGuideOpen(false);
-        }}
-      />
     </div>
   );
 }
